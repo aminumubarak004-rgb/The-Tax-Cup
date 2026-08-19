@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Tax Cup | Salary calculator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="composition.css">
+  <link rel="stylesheet" href="brand.css">
+  <link rel="stylesheet" href="tax-bands.css">
+  <link rel="stylesheet" href="header-brand.css">
+  <link rel="stylesheet" href="report.css">
+  <link rel="stylesheet" href="navigation.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div class="brand"><img class="brand-logo" src="tax-cup-logo.svg" alt="The Tax Cup logo"><span class="brand-copy"><span class="brand-name">THE <em>TAX</em> CUP</span><small class="brand-tagline">SIMPLIFYING TAX &amp; COMPLIANCE FOR BUSINESSES</small></span></div>
+      <span class="jurisdiction">NIGERIA / 2026 MODEL</span>
+    </header>
+
+    <section class="intro">
+      <div>
+        <p class="kicker">Payroll intelligence</p>
+        <h1>HR PAYROLL<br><span>SUPPORT.</span></h1>
+      </div>
+      <p class="intro-copy">Designed to help businesses, HR teams, and payroll professionals understand employee tax obligations.</p>
+    </section>
+
+    <section class="workspace">
+      <div class="panel input-panel">
+        <div class="panel-heading"><div><span class="step">01</span><h2>Choose a calculation</h2></div><a class="batch-link" href="employees.html">Multiple employees ↗</a></div>
+        <div class="mode-switch" role="tablist" aria-label="Calculation mode">
+          <button class="mode active" data-mode="gross" role="tab" aria-selected="true">Gross to net</button>
+          <button class="mode" data-mode="net" role="tab" aria-selected="false">Net to gross</button>
+        </div>
+        <form id="calculator-form">
+          <label class="field-label employee-label" for="employee-name"><span>Employee name</span><span>For the salary report</span></label>
+          <div class="text-input"><input id="employee-name" type="text" placeholder="Enter employee full name" autocomplete="name"></div>
+          <label class="field-label" for="salary"><span id="salary-label">Gross salary</span><span class="unit-toggle"><button type="button" class="unit active" data-unit="monthly">Monthly</button><button type="button" class="unit" data-unit="annual">Annual</button></span></label>
+          <div class="money-input"><span>₦</span><input id="salary" type="number" step="any" value="500000" required><span class="input-suffix" id="input-suffix">/ month</span></div>
+          <p class="field-hint" id="salary-hint">Enter the employee's gross monthly salary before deductions.</p>
+
+          <div class="options-title composition-title">Gross salary composition</div>
+          <p class="field-hint composition-hint">Set the percentage allocated to each earnings category. The total must equal 100%.</p>
+          <div class="allocation-grid">
+            <label><span>Basic salary</span><div><input class="allocation" data-allocation="basic" type="number" min="0" step="any" value="50"><b>%</b></div></label>
+            <label><span>Housing allowance</span><div><input class="allocation" data-allocation="housing" type="number" min="0" step="any" value="20"><b>%</b></div></label>
+            <label><span>Transport allowance</span><div><input class="allocation" data-allocation="transport" type="number" min="0" step="any" value="15"><b>%</b></div></label>
+            <label><span>Other allowances</span><div><input class="allocation" data-allocation="other" type="number" min="0" step="any" value="15"><b>%</b></div></label>
+          </div>
+          <div class="allocation-total"><span>Allocated <strong id="allocation-total">100%</strong></span><span id="allocation-status">Ready to calculate</span></div>
+
+          <div class="options-title">Deductions & benefits</div>
+          <label class="check-row"><input id="pension" type="checkbox" checked><span class="check-box"></span><span><strong>Pension contribution</strong><small>8% of Basic + Housing + Transport</small></span><b>8%</b></label>
+          <label class="check-row"><input id="nhf" type="checkbox" checked><span class="check-box"></span><span><strong>NHF contribution</strong><small>2.5% of Basic salary</small></span><b>2.5%</b></label>
+          <label class="field-label rent-label" for="annual-rent"><span>Annual rent paid</span><span>20% relief / max ₦500,000</span></label>
+          <div class="money-input compact"><span>₦</span><input id="annual-rent" type="number" step="any" value="0"><span class="input-suffix">/ year</span></div>
+          <p class="field-hint rent-hint">Enter annual rent to reduce taxable income under the rent relief rule.</p>
+          <label class="check-row"><input id="other-deductions" type="checkbox"><span class="check-box"></span><span><strong>Other monthly deductions</strong><small>Health, loan or other payroll items</small></span><b>+</b></label>
+          <div class="money-input compact hidden" id="other-wrap"><span>₦</span><input id="other" type="number" step="any" value="0"><span class="input-suffix">/ month</span></div>
+          <button class="calculate" id="calculate-button" type="submit"><span>Calculate salary</span><span class="arrow">↗</span></button>
+        </form>
+      </div>
+
+      <div class="panel result-panel">
+        <div class="panel-heading"><div><span class="step">02</span><div><h2>Your estimate</h2><span class="report-employee" id="report-employee">Employee salary report</span></div></div><button class="print-button" id="print" title="Print or save this estimate as PDF">Print / PDF ↗</button></div>
+        <div class="result-hero"><span id="result-label">Estimated net pay</span><strong id="net-result">₦399,871</strong><span id="result-period">per month</span></div>
+        <div class="metrics"><div><span>Annual PAYE</span><strong id="paye-result">₦1,201,548</strong></div><div><span>Annual gross</span><strong id="gross-result">₦6,000,000</strong></div><div><span>Rent relief</span><strong id="rent-relief-result">₦0</strong></div></div>
+        <div class="tax-band-panel"><div class="breakdown-heading"><span>Complete tax bands</span><span>Annual taxable income</span></div><div id="tax-band-list"></div></div>
+        <div class="breakdown-heading"><span>Pay breakdown</span><span id="breakdown-period">Monthly view</span></div>
+        <div class="breakdown"><div class="bar"><i class="gross-bar"></i><i class="pension-bar"></i><i class="nhf-bar"></i><i class="tax-bar"></i></div><div class="legend"><span><i class="dot gross"></i>Gross <b id="gross-legend">₦500,000</b></span><span><i class="dot pension"></i>Pension <b id="pension-legend">₦40,000</b></span><span><i class="dot nhf"></i>NHF <b id="nhf-legend">₦12,500</b></span><span><i class="dot tax"></i>PAYE <b id="tax-legend">₦100,129</b></span></div></div>
+        <div class="allowance-breakdown"><div class="breakdown-heading"><span>Earnings composition</span><span>Monthly allocation</span></div><div id="allowance-list"></div></div>
+        <div class="note"><span>i</span><p>This estimate uses the configured 2026 Nigerian PAYE model. Confirm rates, exemptions and employer policy with your payroll adviser before processing.</p></div>
+      </div>
+    </section>
+    <footer><span>THE TAX CUP / SIMPLIFYING TAX &amp; COMPLIANCE FOR BUSINESSES</span><span>Tax bands are editable in <strong>app.js</strong></span></footer>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
