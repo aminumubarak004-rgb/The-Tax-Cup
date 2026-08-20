@@ -7,12 +7,17 @@ A browser-based Nigerian PAYE salary calculator branded for The Tax Cup, with tw
 - **Gross composition:** allocate gross salary across Basic, Housing, Transport and Other Allowances using editable percentages.
 - **Employee report:** enter an employee name and use **Print / PDF** to print or save a complete branded salary report as PDF.
 - **Multiple employees:** open `employees.html` to calculate and report salary obligations for a whole team in one pass.
+- **Company workspace:** open `company.html` to manage a local employee directory, view payroll totals and save payroll runs.
 
 The interface uses the Tax Cup gold-and-ink palette, with the logo in `tax-cup-logo.svg` and the brand tagline: **SIMPLIFYING TAX & COMPLIANCE FOR BUSINESSES**.
 
 ## Multiple employees
 
 The **Multiple employees** page allows HR or payroll teams to add as many employee rows as needed. Shared composition percentages, pension, NHF, annual rent relief and calculation mode are applied to every row. The team report shows each employee's gross, Basic, Housing, Transport, Other Allowances, PAYE, pension, NHF and net pay, plus the total net payroll. Use **Print / PDF** to print or save the team report.
+
+## Company workspace prototype
+
+The **Company workspace** is available at `company.html`. It currently stores employee records and saved payroll-run summaries in the browser's local storage on that device. It is useful for demonstrating the company workflow, but it is not yet a secure multi-user database. Before production use, connect the same interface to authenticated hosting and a managed database such as Supabase.
 
 ## Run it
 
