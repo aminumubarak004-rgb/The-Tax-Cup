@@ -11,6 +11,14 @@
   <link rel="stylesheet" href="brand.css">
   <link rel="stylesheet" href="header-brand.css">
   <link rel="stylesheet" href="payroll.css">
+  <script>
+    try {
+      const sessionUser = JSON.parse(localStorage.getItem('tax-cup-current-user') || 'null');
+      const platformUsers = JSON.parse(localStorage.getItem('tax-cup-users') || '[]');
+      const activeUser = platformUsers.find((user) => user.id === sessionUser?.id && user.active);
+      if (!activeUser) window.location.replace('login.html');
+    } catch (error) { window.location.replace('login.html'); }
+  </script>
 </head>
 <body>
   <main class="payroll-shell">
