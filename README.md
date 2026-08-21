@@ -8,6 +8,7 @@ A browser-based Nigerian PAYE salary calculator branded for The Tax Cup, with tw
 - **Employee report:** enter an employee name and use **Print / PDF** to print or save a complete branded salary report as PDF.
 - **Multiple employees:** open `employees.html` to calculate and report salary obligations for a whole team in one pass.
 - **Company workspace:** open `company.html` to manage a local employee directory, view payroll totals and save payroll runs.
+- **Payroll management:** open `payroll.html` for monthly salary snapshots, duplicate-period protection, payroll history filters, dashboards, individual/company reports, CSV export, workflow statuses, users/roles and an audit trail.
 
 The interface uses the Tax Cup gold-and-ink palette, with the logo in `tax-cup-logo.svg` and the brand tagline: **SIMPLIFYING TAX & COMPLIANCE FOR BUSINESSES**.
 
@@ -18,6 +19,14 @@ The **Multiple employees** page allows HR or payroll teams to add as many employ
 ## Company workspace prototype
 
 The **Company workspace** is available at `company.html`. It currently stores employee records and saved payroll-run summaries in the browser's local storage on that device. It is useful for demonstrating the company workflow, but it is not yet a secure multi-user database. Before production use, connect the same interface to authenticated hosting and a managed database such as Supabase.
+
+## Payroll management prototype
+
+The **Payroll control room** is available at `payroll.html`. It uses the existing employee directory as its source, then saves a complete salary and deduction snapshot under `tax-cup-salary-records`. Each employee/month combination is unique, so changing an employee's current salary cannot rewrite an earlier record. Records move through Draft, Under Review, Approved, Finalized and Paid states, and important actions are stored under `tax-cup-audit`. The seeded local account is `admin@taxcup.local` with password `demo-password`.
+
+The report views support individual history, company summaries, detailed tables, printing to PDF through the browser print dialog, and CSV downloads. User records and role assignments are available from Users & roles. This is a front-end prototype, not production authentication: passwords are hashed before storage, but real deployment requires server-side sessions, authorization, encryption, database constraints and a managed identity provider.
+
+Recommended production tables are `employees`, `users`, `roles`, `permissions`, `user_roles`, `payroll_periods`, `payroll_records`, `payroll_earnings`, `payroll_deductions`, `payroll_payments`, `payroll_approvals` and `audit_logs`. Put a unique constraint on `(employee_id, payroll_period_id)` and retain employee and salary values directly on each finalized payroll record for historical integrity.
 
 ## Run it
 

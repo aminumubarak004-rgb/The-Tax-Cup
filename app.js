@@ -10,6 +10,7 @@ const TAX_BANDS = [
 const RENT_RELIEF_RATE = 0.2;
 const RENT_RELIEF_CAP = 500000;
 const state = { mode: 'gross', unit: 'monthly' };
+let currentResult;
 const $ = (id) => document.getElementById(id);
 const money = (value) => new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(Math.max(0, value));
 const numeric = (value) => Number(value) || 0;
@@ -101,6 +102,7 @@ function runCalculation(event) {
   if (!updateAllocationStatus()) return;
   const entered = numeric($('salary').value) * (state.unit === 'annual' ? 1 / 12 : 1);
   const result = state.mode === 'net' ? grossForNet(entered) : calculate(entered);
+  currentResult = result;
   $('result-label').textContent = state.mode === 'net' ? 'Required gross pay' : 'Estimated net pay';
   $('result-period').textContent = state.unit === 'annual' ? 'annual equivalent' : 'per month';
   $('breakdown-period').textContent = 'Monthly view';
@@ -131,6 +133,54 @@ document.querySelectorAll('.allocation').forEach((input) => input.addEventListen
 $('employee-name').addEventListener('input', runCalculation);
 
 $('other-deductions').addEventListener('change', () => $('other-wrap').classList.toggle('hidden', !$('other-deductions').checked));
+$('pension').addEventListener('change', runCalculation);
+$('nhf').addEventListener('change', runCalculation);
+$('annual-rent').addEventListener('input', runCalculation);
+$('other').addEventListener('input', runCalculation);
 $('calculator-form').addEventListener('submit', runCalculation);
 $('print').addEventListener('click', () => window.print());
+const today = new Date();
+$('single-payroll-month').value = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+function singleSnapshot() {
+  return { salary: $('salary').value, employeeName: $('employee-name').value, mode: state.mode, unit: state.unit, allocations: getAllocations(), pension: $('pension').checked, nhf: $('nhf').checked, annualRent: $('annual-rent').value, otherDeductions: $('other-deductions').checked, other: $('other').value };
+}
+function openSinglePayroll(record) {
+  const snapshot = record.snapshot;
+  if (!snapshot) {
+    $('report-employee').textContent = 'Older record - please recalculate and save again';
+    return;
+  }
+  $('single-payroll-month').value = record.period;
+  $('salary').value = snapshot.salary;
+  $('employee-name').value = snapshot.employeeName;
+  $('pension').checked = snapshot.pension;
+  $('nhf').checked = snapshot.nhf;
+  $('annual-rent').value = snapshot.annualRent;
+  $('other-deductions').checked = snapshot.otherDeductions;
+  $('other').value = snapshot.other;
+  Object.entries(snapshot.allocations).forEach(([key, value]) => { document.querySelector(`[data-allocation="${key}"]`).value = value; });
+  state.mode = snapshot.mode;
+  state.unit = snapshot.unit;
+  document.querySelectorAll('.mode').forEach((item) => { item.classList.toggle('active', item.dataset.mode === state.mode); item.setAttribute('aria-selected', item.dataset.mode === state.mode ? 'true' : 'false'); });
+  document.querySelectorAll('.unit').forEach((item) => item.classList.toggle('active', item.dataset.unit === state.unit));
+  $('salary-label').textContent = state.mode === 'net' ? 'Target net salary' : 'Gross salary';
+  $('salary-hint').textContent = state.mode === 'net' ? 'Enter the take-home amount the employee wants to receive.' : "Enter the employee's gross salary before deductions.";
+  $('input-suffix').textContent = state.unit === 'annual' ? '/ year' : '/ month';
+  $('other-wrap').classList.toggle('hidden', !snapshot.otherDeductions);
+  runCalculation();
+}
+function navigateToSinglePayroll(record) {
+  window.location.href = `${window.location.pathname}?payroll=${encodeURIComponent(record.id)}`;
+}
+const singleArchive = { type: 'single', search: $('single-archive-search'), list: $('single-archive-list'), empty: $('single-archive-empty'), onOpen: navigateToSinglePayroll };
+$('single-archive-search').addEventListener('input', () => archiveRender(singleArchive));
+$('save-single-payroll').addEventListener('click', () => {
+  if (!currentResult || !$('single-payroll-month').value) return;
+  archiveAdd({ type: 'single', period: $('single-payroll-month').value, title: `${currentResult.employeeName} payroll`, employeeName: currentResult.employeeName, count: 1, totalNet: currentResult.net, snapshot: singleSnapshot() });
+  archiveRender(singleArchive);
+});
 runCalculation();
+archiveRender(singleArchive);
+const savedSingleId = new URLSearchParams(window.location.search).get('payroll');
+const savedSingleRecord = archiveLoad().find((record) => String(record.id) === savedSingleId && record.type === 'single');
+if (savedSingleRecord) openSinglePayroll(savedSingleRecord);

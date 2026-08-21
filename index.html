@@ -14,6 +14,7 @@
   <link rel="stylesheet" href="header-brand.css">
   <link rel="stylesheet" href="report.css">
   <link rel="stylesheet" href="navigation.css">
+  <link rel="stylesheet" href="archive.css">
 </head>
 <body>
   <main class="shell">
@@ -31,7 +32,7 @@
 
     <section class="workspace">
       <div class="panel input-panel">
-        <div class="panel-heading"><div><span class="step">01</span><h2>Choose a calculation</h2></div><span><a class="batch-link" href="employees.html">Multiple employees ↗</a> <a class="batch-link" href="company.html">Company workspace ↗</a></span></div>
+        <div class="panel-heading"><div><span class="step">01</span><h2>Choose a calculation</h2></div><span><a class="batch-link" href="employees.html">Multiple employees ↗</a> <a class="batch-link" href="company.html">Company workspace ↗</a> <a class="batch-link" href="payroll.html">Payroll control room ↗</a></span></div>
         <div class="mode-switch" role="tablist" aria-label="Calculation mode">
           <button class="mode active" data-mode="gross" role="tab" aria-selected="true">Gross to net</button>
           <button class="mode" data-mode="net" role="tab" aria-selected="false">Net to gross</button>
@@ -76,8 +77,14 @@
         <div class="note"><span>i</span><p>This estimate uses the configured 2026 Nigerian PAYE model. Confirm rates, exemptions and employer policy with your payroll adviser before processing.</p></div>
       </div>
     </section>
+    <section class="archive-panel panel">
+      <div class="panel-heading"><div><span class="step">03</span><div><h2>Monthly payroll archive</h2><span class="archive-subtitle">Save and find individual payroll records</span></div></div></div>
+      <div class="archive-actions"><label class="archive-field" for="single-payroll-month">Payroll month<input id="single-payroll-month" type="month" required></label><button class="calculate archive-save" id="save-single-payroll" type="button">Save payroll <span class="arrow">↗</span></button><label class="archive-search" for="single-archive-search">Search saved payrolls<input id="single-archive-search" type="search" placeholder="Search employee or month"></label></div>
+      <div class="archive-list" id="single-archive-list"></div><p class="archive-empty hidden" id="single-archive-empty">No saved individual payrolls found.</p>
+    </section>
     <footer><span>THE TAX CUP / SIMPLIFYING TAX &amp; COMPLIANCE FOR BUSINESSES</span><span>Tax bands are editable in <strong>app.js</strong></span></footer>
   </main>
+  <script src="archive.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
