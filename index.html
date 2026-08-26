@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#171717">
+  <link rel="manifest" href="manifest.json">
   <title>The Tax Cup | Salary calculator</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -22,9 +24,9 @@
       const sessionUser = JSON.parse(localStorage.getItem('tax-cup-current-user') || 'null');
       const platformUsers = JSON.parse(localStorage.getItem('tax-cup-users') || '[]');
       const activeUser = platformUsers.find((user) => user.id === sessionUser?.id && user.active);
-      if (!activeUser) window.location.replace(`login.html?redirect=${encodeURIComponent(window.location.pathname.split('/').pop() || 'index.html')}`);
+      if (!activeUser) window.location.replace('login.html');
       else document.documentElement.classList.remove('auth-pending');
-    } catch (error) { window.location.replace(`login.html?redirect=${encodeURIComponent(window.location.pathname.split('/').pop() || 'index.html')}`); }
+    } catch (error) { window.location.replace('login.html'); }
   </script>
 </head>
 <body>
@@ -43,7 +45,7 @@
 
     <section class="workspace">
       <div class="panel input-panel">
-        <div class="panel-heading"><div><span class="step">01</span><h2>Choose a calculation</h2></div><span><a class="batch-link" href="login.html?redirect=employees.html">Multiple employees ↗</a> <a class="batch-link" href="login.html?redirect=company.html">Company workspace ↗</a> <a class="batch-link" href="login.html?redirect=payroll.html">Payroll control room ↗</a></span></div>
+        <div class="panel-heading"><div><span class="step">01</span><h2>Choose a calculation</h2></div><span><a class="batch-link" href="employees.html">Multiple employees ↗</a> <a class="batch-link" href="company.html">Company workspace ↗</a> <a class="batch-link" href="payroll.html">Payroll control room ↗</a></span></div>
         <div class="mode-switch" role="tablist" aria-label="Calculation mode">
           <button class="mode active" data-mode="gross" role="tab" aria-selected="true">Gross to net</button>
           <button class="mode" data-mode="net" role="tab" aria-selected="false">Net to gross</button>
@@ -100,5 +102,8 @@
   </main>
   <script src="archive.js"></script>
   <script src="app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');
+  </script>
 </body>
 </html>
