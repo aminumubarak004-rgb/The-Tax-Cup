@@ -13,8 +13,8 @@
       const sessionUser = JSON.parse(localStorage.getItem('tax-cup-current-user') || 'null');
       const platformUsers = JSON.parse(localStorage.getItem('tax-cup-users') || '[]');
       const activeUser = platformUsers.find((user) => user.id === sessionUser?.id && user.active);
-      if (!activeUser) window.location.replace('login.html');
-    } catch (error) { window.location.replace('login.html'); }
+      if (!activeUser) window.location.replace(`login.html?redirect=${encodeURIComponent(window.location.pathname.split('/').pop() || 'employees.html')}`);
+    } catch (error) { window.location.replace(`login.html?redirect=${encodeURIComponent(window.location.pathname.split('/').pop() || 'employees.html')}`); }
   </script>
 </head>
 <body>

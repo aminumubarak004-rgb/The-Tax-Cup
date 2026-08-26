@@ -54,14 +54,15 @@ function calculate(grossMonthly) {
   const nhfPay = earnings.basic;
   const pension = $('pension').checked ? pensionablePay * 0.08 : 0;
   const nhf = $('nhf').checked ? nhfPay * 0.025 : 0;
+  const statutory = numeric($('statutory-deductions').value);
   const other = $('other-deductions').checked ? numeric($('other').value) : 0;
   const annualGross = grossMonthly * 12;
   const annualRent = numeric($('annual-rent').value);
   const rentRelief = Math.min(annualRent * RENT_RELIEF_RATE, RENT_RELIEF_CAP);
   const annualTaxable = Math.max(0, annualGross - (pension + nhf) * 12 - rentRelief);
   const paye = annualTax(annualTaxable) / 12;
-  const net = Math.max(0, grossMonthly - pension - nhf - paye - other);
-  return { employeeName: $('employee-name').value.trim() || 'Employee salary report', grossMonthly, pension, nhf, other, paye, net, annualGross, annualPaye: paye * 12, annualRent, rentRelief, allocations, earnings };
+  const net = Math.max(0, grossMonthly - pension - nhf - paye - statutory - other);
+  return { employeeName: $('employee-name').value.trim() || 'Employee salary report', grossMonthly, pension, nhf, statutory, other, paye, net, annualGross, annualPaye: paye * 12, annualRent, rentRelief, allocations, earnings };
 }
 
 function grossForNet(targetNet) {
@@ -84,11 +85,13 @@ function render(result) {
   $('paye-result').textContent = money(result.annualPaye);
   $('gross-result').textContent = money(result.annualGross);
   $('rent-relief-result').textContent = money(result.rentRelief);
+  $('statutory-result').textContent = money(result.statutory);
   $('tax-band-list').innerHTML = TAX_BANDS.map((band, index) => `<div class="tax-band-row"><span>${taxBandNames[index]}</span><strong>${(band.rate * 100).toFixed(0)}%</strong></div>`).join('');
   $('gross-legend').textContent = money(result.grossMonthly);
   $('pension-legend').textContent = money(result.pension);
   $('nhf-legend').textContent = money(result.nhf);
   $('tax-legend').textContent = money(result.paye);
+  $('statutory-legend').textContent = money(result.statutory);
   $('allowance-list').innerHTML = Object.keys(result.earnings).map((key) => `<div class="allowance-row"><span><i class="allowance-swatch ${key}"></i>${allocationNames[key]} <small>${result.allocations[key]}%</small></span><strong>${money(result.earnings[key])}</strong></div>`).join('');
   const total = Math.max(result.grossMonthly, 1);
   document.querySelector('.gross-bar').style.width = `${(result.net / total) * 100}%`;
@@ -136,13 +139,14 @@ $('other-deductions').addEventListener('change', () => $('other-wrap').classList
 $('pension').addEventListener('change', runCalculation);
 $('nhf').addEventListener('change', runCalculation);
 $('annual-rent').addEventListener('input', runCalculation);
+$('statutory-deductions').addEventListener('input', runCalculation);
 $('other').addEventListener('input', runCalculation);
 $('calculator-form').addEventListener('submit', runCalculation);
 $('print').addEventListener('click', () => window.print());
 const today = new Date();
 $('single-payroll-month').value = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
 function singleSnapshot() {
-  return { salary: $('salary').value, employeeName: $('employee-name').value, mode: state.mode, unit: state.unit, allocations: getAllocations(), pension: $('pension').checked, nhf: $('nhf').checked, annualRent: $('annual-rent').value, otherDeductions: $('other-deductions').checked, other: $('other').value };
+  return { salary: $('salary').value, employeeName: $('employee-name').value, mode: state.mode, unit: state.unit, allocations: getAllocations(), pension: $('pension').checked, nhf: $('nhf').checked, annualRent: $('annual-rent').value, statutory: $('statutory-deductions').value, otherDeductions: $('other-deductions').checked, other: $('other').value };
 }
 function openSinglePayroll(record) {
   const snapshot = record.snapshot;
@@ -156,6 +160,7 @@ function openSinglePayroll(record) {
   $('pension').checked = snapshot.pension;
   $('nhf').checked = snapshot.nhf;
   $('annual-rent').value = snapshot.annualRent;
+  $('statutory-deductions').value = snapshot.statutory || 0;
   $('other-deductions').checked = snapshot.otherDeductions;
   $('other').value = snapshot.other;
   Object.entries(snapshot.allocations).forEach(([key, value]) => { document.querySelector(`[data-allocation="${key}"]`).value = value; });
