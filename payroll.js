@@ -15,8 +15,34 @@ let records = read(RECORD_KEY);
 let users = read(USER_KEY);
 let audit = read(AUDIT_KEY);
 let editingRecordId = null;
-const currentUser = JSON.parse(localStorage.getItem('tax-cup-current-user') || 'null');
-let currentRole = localStorage.getItem('tax-cup-current-role') || currentUser?.role || 'Super Administrator';
+let currentUser = JSON.parse(localStorage.getItem('tax-cup-current-user') || 'null');
+let currentRole = localStorage.getItem('tax-cup-current-role') || currentUser?.role || '';
+
+async function refreshSessionUser() {
+  try {
+    const response = await fetch('/api/session', { credentials: 'same-origin' });
+    const data = await response.json();
+    if (data?.authenticated && data.user) {
+      currentUser = { id: data.user.id, name: data.user.name, email: data.user.email, role: data.user.role };
+      localStorage.setItem('tax-cup-current-user', JSON.stringify(currentUser));
+      localStorage.setItem('tax-cup-current-role', data.user.role);
+      currentRole = data.user.role;
+    }
+  } catch (error) { return null; }
+}
+
+async function loadUsersFromServer() {
+  try {
+    const response = await fetch('/api/users', { credentials: 'same-origin' });
+    const data = await response.json();
+    if (response.ok && Array.isArray(data?.users)) {
+      users = data.users;
+      localStorage.setItem(USER_KEY, JSON.stringify(users));
+    }
+  } catch (error) {
+    // Keep using localStorage data as a fallback.
+  }
+}
 
 const roles = { 'Super Administrator': ['all'], 'HR Manager': ['viewEmployees', 'viewPayroll', 'viewReports'], Accountant: ['viewEmployees', 'viewPayroll', 'createPayroll', 'editPayroll', 'approvePayroll', 'viewReports', 'exportReports'], 'Payroll Officer': ['viewEmployees', 'viewPayroll', 'createPayroll', 'editPayroll', 'viewReports', 'exportReports'], Management: ['viewReports'] };
 const can = (permission) => (roles[currentRole] || []).includes('all') || (roles[currentRole] || []).includes(permission);
@@ -47,9 +73,41 @@ async function hashPassword(value) { const data = new TextEncoder().encode(value
 function renderAll() { ensureRentField(); employees = employeeList(); populateSelects(); renderDashboard(); renderRecords(); renderEmployeeReport(); renderCompanyReport(); renderUsers(); renderAudit(); }
 
 document.querySelectorAll('.nav-tab').forEach((button) => button.addEventListener('click', () => { document.querySelectorAll('.nav-tab').forEach((item) => item.classList.toggle('active', item === button)); document.querySelectorAll('.view').forEach((view) => view.classList.toggle('active', view.id === `${button.dataset.view}-view`)); }));
-$('new-record').addEventListener('click', () => openRecord()); $('record-form').addEventListener('submit', saveRecord); $('new-user').addEventListener('click', () => { if (can('manageUsers')) $('user-modal').classList.remove('hidden'); else alert('Only administrators can manage users.'); }); $('user-form').addEventListener('submit', async (event) => { event.preventDefault(); const email = $('user-email').value.trim().toLowerCase(); if (users.some((user) => user.email === email)) return alert('A user with this email already exists.'); const passwordHash = await hashPassword($('user-password').value); const user = { id: `USR-${Date.now()}`, name: $('user-name').value.trim(), email, department: $('user-department').value.trim(), title: $('user-title').value.trim(), role: $('user-role').value, passwordHash, active: true, createdAt: new Date().toISOString() }; users.unshift(user); write(USER_KEY, users); addAudit('Created user', email, `Role ${user.role}`); $('user-form').reset(); $('user-modal').classList.add('hidden'); renderUsers(); renderAudit(); });
-document.querySelectorAll('[data-close]').forEach((button) => button.addEventListener('click', () => $(button.dataset.close).classList.add('hidden'))); document.querySelectorAll('#dashboard-period,#dashboard-department').forEach((input) => input.addEventListener('input', renderDashboard)); document.querySelectorAll('#record-employee,#record-department,#record-status,#record-payment,#record-from,#record-to,#record-search').forEach((input) => input.addEventListener('input', renderRecords)); document.querySelectorAll('#report-employee,#report-from,#report-to').forEach((input) => input.addEventListener('input', renderEmployeeReport)); document.querySelectorAll('#company-period,#company-department,#company-detail').forEach((input) => input.addEventListener('input', renderCompanyReport)); document.querySelectorAll('#record-form input,#record-form select,#record-form textarea').forEach((input) => input.addEventListener('input', updateFormTotals)); $('print-employee').addEventListener('click', () => window.print()); $('print-company').addEventListener('click', () => window.print()); $('export-csv').addEventListener('click', exportCsv); $('logout').addEventListener('click', () => { localStorage.removeItem('tax-cup-current-role'); localStorage.removeItem('tax-cup-current-user'); window.location.href = 'login.html'; });
+$('new-record').addEventListener('click', () => openRecord()); $('record-form').addEventListener('submit', saveRecord); $('new-user').addEventListener('click', () => { if (can('manageUsers')) $('user-modal').classList.remove('hidden'); else alert('Only administrators can manage users.'); }); $('user-form').addEventListener('submit', async (event) => { event.preventDefault(); const email = $('user-email').value.trim().toLowerCase(); if (users.some((user) => user.email === email)) return alert('A user with this email already exists.'); try {
+  const response = await fetch('/api/users', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+    body: JSON.stringify({
+      name: $('user-name').value.trim(),
+      email,
+      department: $('user-department').value.trim(),
+      title: $('user-title').value.trim(),
+      role: $('user-role').value,
+      password: $('user-password').value,
+    }),
+  });
+  const result = await response.json();
+  if (!response.ok || !result.ok) {
+    return alert(result.message || 'The user could not be created.');
+  }
+  users.unshift(result.user);
+  write(USER_KEY, users);
+  addAudit('Created user', email, `Role ${result.user.role}`);
+  $('user-form').reset();
+  $('user-modal').classList.add('hidden');
+  renderUsers();
+  renderAudit();
+} catch (error) {
+  alert('The user service is unavailable right now. Please try again shortly.');
+} });
+document.querySelectorAll('[data-close]').forEach((button) => button.addEventListener('click', () => $(button.dataset.close).classList.add('hidden'))); document.querySelectorAll('#dashboard-period,#dashboard-department').forEach((input) => input.addEventListener('input', renderDashboard)); document.querySelectorAll('#record-employee,#record-department,#record-status,#record-payment,#record-from,#record-to,#record-search').forEach((input) => input.addEventListener('input', renderRecords)); document.querySelectorAll('#report-employee,#report-from,#report-to').forEach((input) => input.addEventListener('input', renderEmployeeReport)); document.querySelectorAll('#company-period,#company-department,#company-detail').forEach((input) => input.addEventListener('input', renderCompanyReport)); document.querySelectorAll('#record-form input,#record-form select,#record-form textarea').forEach((input) => input.addEventListener('input', updateFormTotals)); $('print-employee').addEventListener('click', () => window.print()); $('print-company').addEventListener('click', () => window.print()); $('export-csv').addEventListener('click', exportCsv); $('logout').addEventListener('click', async () => { try { await fetch('/api/logout', { method: 'POST', credentials: 'same-origin' }); } finally { localStorage.removeItem('tax-cup-current-role'); localStorage.removeItem('tax-cup-current-user'); window.location.href = 'login.html'; } });
 
-if (!users.length) { users = [{ id: 'USR-ADMIN', name: 'Demo administrator', email: 'admin@taxcup.local', department: 'Finance', title: 'System administrator', role: 'Super Administrator', passwordHash: '41bd876b085d6031cb0e04de35b88d77f83a4ba39f879fee40805ac19e356023', active: true, createdAt: new Date().toISOString() }]; write(USER_KEY, users); }
 if (!records.length) { const seed = employees.slice(0, 2); records = seed.map((employee, index) => ({ id: `SEED-${employee.id}`, employeeId: employee.id, employeeName: employee.name, department: employee.department, title: employee.title, period: todayMonth(), basic: employee.salary * .5, housing: employee.salary * .2, transport: employee.salary * .15, otherAllowances: employee.salary * .15, bonus: 0, overtime: 0, commission: 0, arrears: 0, otherEarnings: 0, paye: employee.salary * .1, pension: employee.salary * .04, nhf: employee.salary * .0125, loan: 0, advance: 0, otherDeductions: 0, workflowStatus: index ? 'Under Review' : 'Draft', paymentStatus: index ? 'Paid' : 'Pending' })); write(RECORD_KEY, records); }
-$('dashboard-period').value = todayMonth(); $('company-period').value = todayMonth(); $('session-user').textContent = currentUser ? `${currentUser.name} / ${currentRole}` : `${currentRole} / local session`; document.querySelectorAll('.admin-only').forEach((item) => item.classList.toggle('hidden', !can('manageUsers'))); renderAll();
+refreshSessionUser().finally(() => {
+  $('dashboard-period').value = todayMonth();
+  $('company-period').value = todayMonth();
+  $('session-user').textContent = currentUser ? `${currentUser.name} / ${currentRole}` : 'Authenticated session';
+  document.querySelectorAll('.admin-only').forEach((item) => item.classList.toggle('hidden', !can('manageUsers')));
+  loadUsersFromServer().finally(() => renderAll());
+});

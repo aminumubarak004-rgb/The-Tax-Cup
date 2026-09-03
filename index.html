@@ -17,17 +17,6 @@
   <link rel="stylesheet" href="report.css">
   <link rel="stylesheet" href="navigation.css">
   <link rel="stylesheet" href="archive.css">
-  <style>html.auth-pending body { visibility: hidden; }</style>
-  <script>document.documentElement.classList.add('auth-pending');</script>
-  <script>
-    try {
-      const sessionUser = JSON.parse(localStorage.getItem('tax-cup-current-user') || 'null');
-      const platformUsers = JSON.parse(localStorage.getItem('tax-cup-users') || '[]');
-      const activeUser = platformUsers.find((user) => user.id === sessionUser?.id && user.active);
-      if (!activeUser) window.location.replace('login.html');
-      else document.documentElement.classList.remove('auth-pending');
-    } catch (error) { window.location.replace('login.html'); }
-  </script>
 </head>
 <body>
   <main class="shell">

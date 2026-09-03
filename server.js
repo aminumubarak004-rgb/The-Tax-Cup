@@ -5,11 +5,12 @@ const crypto = require('crypto');
 const cookieParser = require('cookie-parser');
 
 const app = express();
-const port = process.env.PORT || 3000;
+const port = Number(process.env.PORT || 3000);
+const host = process.env.HOST || '0.0.0.0';
 const rootDir = __dirname;
 const usersFile = path.join(rootDir, 'users.json');
 const sessionCookie = 'taxcup_session';
-const protectedPages = new Set(['index.html', 'employees.html', 'company.html', 'payroll.html']);
+const sessionSecret = process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex');
 
 function readUsers() {
   try {
@@ -53,7 +54,11 @@ function getSessionUser(req) {
   const sessionValue = req.cookies && req.cookies[sessionCookie];
   if (!sessionValue) return null;
   try {
-    const payload = JSON.parse(Buffer.from(sessionValue, 'base64').toString('utf8'));
+    const [encodedPayload, signature] = sessionValue.split('.');
+    if (!encodedPayload || !signature) return null;
+    const expectedSignature = crypto.createHmac('sha256', sessionSecret).update(encodedPayload).digest('base64url');
+    if (signature.length !== expectedSignature.length || !crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature))) return null;
+    const payload = JSON.parse(Buffer.from(encodedPayload, 'base64url').toString('utf8'));
     if (!payload || !payload.id) return null;
     const users = readUsers();
     const user = users.find((item) => item.id === payload.id && item.active !== false);
@@ -65,8 +70,9 @@ function getSessionUser(req) {
 }
 
 function setSessionCookie(res, user) {
-  const payload = Buffer.from(JSON.stringify({ id: user.id, name: user.name, email: user.email, role: user.role })).toString('base64');
-  res.cookie(sessionCookie, payload, {
+  const encodedPayload = Buffer.from(JSON.stringify({ id: user.id, name: user.name, email: user.email, role: user.role })).toString('base64url');
+  const signature = crypto.createHmac('sha256', sessionSecret).update(encodedPayload).digest('base64url');
+  res.cookie(sessionCookie, `${encodedPayload}.${signature}`, {
     httpOnly: true,
     sameSite: 'lax',
     secure: false,
@@ -82,9 +88,21 @@ ensureDemoUser();
 app.use(express.json());
 app.use(cookieParser());
 
+function requireSession(req, res, next) {
+  const user = getSessionUser(req);
+  if (!user) return res.status(401).json({ ok: false, message: 'Please sign in first.' });
+  req.sessionUser = user;
+  next();
+}
+
+function requireAdministrator(req, res, next) {
+  if (req.sessionUser?.role !== 'Super Administrator') return res.status(403).json({ ok: false, message: 'Only a Super Administrator can manage users.' });
+  next();
+}
+
 app.use((req, res, next) => {
-  const requestedPage = path.basename(req.path || '');
-  const needsAuth = protectedPages.has(requestedPage) && !req.path.startsWith('/api/');
+  const requestedPage = path.basename(req.path || '') || 'index.html';
+  const needsAuth = req.method === 'GET' && requestedPage.endsWith('.html') && requestedPage !== 'login.html' && !req.path.startsWith('/api/');
   if (needsAuth) {
     const user = getSessionUser(req);
     if (!user) {
@@ -102,6 +120,48 @@ app.get('/api/health', (req, res) => {
 app.get('/api/session', (req, res) => {
   const user = getSessionUser(req);
   res.json({ authenticated: !!user, user: user || null });
+});
+
+app.get('/api/users', requireSession, requireAdministrator, (req, res) => {
+  const users = readUsers().map(({ id, name, email, department, title, role, active, createdAt, lastActivity }) => ({ id, name, email, department, title, role, active, createdAt, lastActivity }));
+  res.json({ ok: true, users });
+});
+
+app.post('/api/users', requireSession, requireAdministrator, (req, res) => {
+  const payload = req.body || {};
+  const name = String(payload.name || '').trim();
+  const email = String(payload.email || '').trim().toLowerCase();
+  const password = String(payload.password || '');
+  const department = String(payload.department || '').trim();
+  const title = String(payload.title || '').trim();
+  const role = String(payload.role || 'HR Manager').trim();
+
+  if (!name || !email || !password) {
+    return res.status(400).json({ ok: false, message: 'Name, email and password are required.' });
+  }
+
+  const users = readUsers();
+  const duplicate = users.some((item) => item.email && item.email.toLowerCase() === email);
+  if (duplicate) {
+    return res.status(409).json({ ok: false, message: 'A user with this email already exists.' });
+  }
+
+  const newUser = {
+    id: `USR-${Date.now()}`,
+    name,
+    email,
+    department,
+    title,
+    role,
+    passwordHash: hashPassword(password),
+    active: true,
+    createdAt: new Date().toISOString(),
+    lastActivity: null,
+  };
+
+  users.unshift(newUser);
+  writeUsers(users);
+  res.json({ ok: true, user: { id: newUser.id, name: newUser.name, email: newUser.email, department: newUser.department, title: newUser.title, role: newUser.role, active: newUser.active, createdAt: newUser.createdAt } });
 });
 
 app.post('/api/login', (req, res) => {
@@ -125,6 +185,12 @@ app.post('/api/login', (req, res) => {
 app.post('/api/logout', (req, res) => {
   clearSessionCookie(res);
   res.json({ ok: true });
+});
+
+app.use((req, res, next) => {
+  const blockedFiles = new Set(['users.json', 'server.js', 'package.json', 'package-lock.json']);
+  if (blockedFiles.has(path.basename(req.path))) return res.status(404).end();
+  next();
 });
 
 app.use(express.static(rootDir, { index: false }));
@@ -165,9 +231,11 @@ app.get('/payroll.html', (req, res) => {
 });
 
 app.get('*', (req, res) => {
+  if (!getSessionUser(req)) return res.redirect('/login.html?redirect=index.html');
   res.sendFile(path.join(rootDir, 'index.html'));
 });
 
-app.listen(port, () => {
+app.listen(port, host, () => {
   console.log(`Tax Cup auth server is running on http://localhost:${port}`);
+  console.log('Network access is enabled on all interfaces. Use this computer\'s LAN IPv4 address with port 3000.');
 });

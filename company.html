@@ -6,14 +6,6 @@
   <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css"><link rel="stylesheet" href="brand.css"><link rel="stylesheet" href="header-brand.css"><link rel="stylesheet" href="company.css"><link rel="stylesheet" href="company-payroll.css">
-  <script>
-    try {
-      const sessionUser = JSON.parse(localStorage.getItem('tax-cup-current-user') || 'null');
-      const platformUsers = JSON.parse(localStorage.getItem('tax-cup-users') || '[]');
-      const activeUser = platformUsers.find((user) => user.id === sessionUser?.id && user.active);
-      if (!activeUser) window.location.replace(`login.html?redirect=${encodeURIComponent(window.location.pathname.split('/').pop() || 'company.html')}`);
-    } catch (error) { window.location.replace(`login.html?redirect=${encodeURIComponent(window.location.pathname.split('/').pop() || 'company.html')}`); }
-  </script>
 </head>
 <body>
   <main class="company-shell">
